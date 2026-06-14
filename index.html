@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dokumentasi API CRUD PHP Native</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: rgba(17, 24, 39, 0.88);
+      --panel-2: rgba(15, 23, 42, 0.94);
+      --text: #e5eefb;
+      --muted: #b0bdd1;
+      --accent: #60a5fa;
+      --accent-2: #5eead4;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --border: rgba(148, 163, 184, 0.22);
+      --code: #0f172a;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.32);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(96, 165, 250, 0.22), transparent 25%),
+        radial-gradient(circle at top right, rgba(94, 234, 212, 0.16), transparent 22%),
+        linear-gradient(180deg, #09111f 0%, #0b1220 44%, #111827 100%);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: min(1200px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 56px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.9));
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 32px;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -90px -120px auto;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(94, 234, 212, 0.16), transparent 68%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(96, 165, 250, 0.12);
+      border: 1px solid rgba(96, 165, 250, 0.22);
+      color: #bfdbfe;
+      font-size: 0.9rem;
+      margin-bottom: 18px;
+    }
+
+    h1, h2, h3 {
+      margin: 0;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 4rem);
+      max-width: 14ch;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      margin-bottom: 14px;
+    }
+
+    h3 {
+      font-size: 1.02rem;
+      margin-bottom: 10px;
+    }
+
+    .lead {
+      margin: 16px 0 0;
+      max-width: 75ch;
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 1.03rem;
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 24px;
+    }
+
+    .meta-card {
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.74);
+      border: 1px solid var(--border);
+    }
+
+    .meta-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin-bottom: 8px;
+    }
+
+    .meta-card strong {
+      font-size: 1rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.06fr 0.94fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .card p,
+    .card li,
+    .card td {
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(94, 234, 212, 0.22);
+      background: rgba(94, 234, 212, 0.12);
+      color: #b6fff1;
+      font-size: 0.9rem;
+    }
+
+    .note {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(251, 191, 36, 0.08);
+      border: 1px solid rgba(251, 191, 36, 0.18);
+      color: #fde68a;
+      line-height: 1.7;
+    }
+
+    .info {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(96, 165, 250, 0.08);
+      border: 1px solid rgba(96, 165, 250, 0.18);
+      color: #bfdbfe;
+      line-height: 1.7;
+    }
+
+    .endpoint {
+      margin-top: 14px;
+      overflow: hidden;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(17, 24, 39, 0.6);
+    }
+
+    .endpoint-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .endpoint-head strong {
+      font-size: 1rem;
+    }
+
+    .method {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      min-width: 72px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .get { background: rgba(96, 165, 250, 0.16); color: #93c5fd; }
+    .post { background: rgba(94, 234, 212, 0.16); color: #67e8f9; }
+    .put { background: rgba(251, 191, 36, 0.16); color: #fcd34d; }
+    .delete { background: rgba(248, 113, 113, 0.16); color: #fca5a5; }
+
+    code, pre {
+      font-family: Consolas, "Courier New", monospace;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      overflow: auto;
+      background: var(--code);
+      color: #dbeafe;
+      line-height: 1.65;
+      font-size: 0.92rem;
+    }
+
+    .stack { display: grid; gap: 18px; }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      overflow: hidden;
+      border-radius: 16px;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: #dbeafe;
+      background: rgba(30, 41, 59, 0.96);
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+      padding: 18px 2px 0;
+      margin-top: 18px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.12);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #dbeafe;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    ul {
+      margin: 10px 0 0 18px;
+      padding: 0;
+    }
+
+    li + li {
+      margin-top: 8px;
+    }
+
+    .section-gap {
+      margin-top: 18px;
+    }
+
+    @media (max-width: 960px) {
+      .meta,
+      .grid,
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .wrap {
+        width: min(100% - 18px, 1200px);
+        padding-top: 9px;
+      }
+
+      .hero,
+      .card {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Dokumentasi API CRUD PHP Native</div>
+      <h1>Integrasi Data Tugas Akhir</h1>
+      <p class="lead">
+        Halaman ini menjelaskan cara memakai API CRUD yang terhubung ke MariaDB/MySQL.
+        Dokumentasi berisi detail atribut tabel, atribut yang dapat diubah, contoh pemanggilan
+        setiap metode, serta contoh hasil insert, update, dan hapus data.
+      </p>
+
+      <div class="meta">
+        <div class="meta-card">
+          <span>Base URL</span>
+          <strong id="baseUrlValue">memuat...</strong>
+        </div>
+        <div class="meta-card">
+          <span>Format Response</span>
+          <strong>status, message, data</strong>
+        </div>
+        <div class="meta-card">
+          <span>Metode yang tersedia</span>
+          <strong>GET, POST, PUT, DELETE</strong>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Ringkasan Perilaku API</h2>
+        <div class="pill-row">
+          <span class="pill">Native PHP</span>
+          <span class="pill">PDO</span>
+          <span class="pill">JSON Response</span>
+          <span class="pill">Postman Friendly</span>
+          <span class="pill">Tanpa Framework</span>
+        </div>
+        <div class="info">
+          Endpoint dibuat per tabel. Jika ingin mengambil data spesifik, tambahkan <code>?id=1</code>.
+          Untuk request body, gunakan JSON dengan nama field yang sudah dipetakan di dokumentasi ini.
+        </div>
+        <div class="note">
+          Catatan penting: karena struktur database kamu memakai nama kolom yang mengandung spasi,
+          backend sudah memetakan nama field JSON agar lebih nyaman dipakai saat request.
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Format Response Umum</h2>
+        <pre>{
+  "status": "success",
+  "message": "Data berhasil diambil",
+  "data": [...]
+}</pre>
+        <div class="info">
+          Nilai <code>status</code> biasanya <code>success</code> atau <code>error</code>.
+          Field <code>data</code> berisi array data, satu objek, atau <code>null</code> tergantung hasil request.
+        </div>
+      </section>
+    </div>
+
+    <section class="card section-gap">
+      <h2>Detail Atribut Tabel</h2>
+      <p class="small">
+        Berikut penjelasan setiap tabel, atribut database, atribut JSON yang dipakai di request/response,
+        dan mana saja yang bisa diubah melalui API.
+      </p>
+
+      <div class="stack">
+        <div class="endpoint">
+          <div class="endpoint-head">
+            <strong>1. dim_jenis_kelamin</strong>
+            <span class="tag">CRUD lengkap</span>
+          </div>
+          <pre>{
+  "id_jenis_kelamin": 1,
+  "l_p": "L"
+}</pre>
+          <table>
+            <thead>
+              <tr>
+                <th>Atribut Database</th>
+                <th>Tipe</th>
+                <th>Fungsi</th>
+                <th>Bisa Diubah?</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>ID_JENIS_KELAMIN</code></td>
+                <td>int, primary key, auto increment</td>
+                <td>ID unik untuk setiap data</td>
+                <td>Tidak</td>
+              </tr>
+              <tr>
+                <td><code>L/P</code></td>
+                <td>tinytext</td>
+                <td>Nilai jenis kelamin</td>
+                <td>Ya</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="info">Field JSON yang dipakai saat request: <code>l_p</code></div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-head">
+            <strong>2. dim_kabupaten_kota</strong>
+            <span class="tag">CRUD lengkap</span>
+          </div>
+          <pre>{
+  "id_kabupaten_kota": 1,
+  "kabupaten_kota": "Gowa"
+}</pre>
+          <table>
+            <thead>
+              <tr>
+                <th>Atribut Database</th>
+                <th>Tipe</th>
+                <th>Fungsi</th>
+                <th>Bisa Diubah?</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>ID KABUPATEN KOTA</code></td>
+                <td>int, primary key, auto increment</td>
+                <td>ID unik untuk wilayah</td>
+                <td>Tidak</td>
+              </tr>
+              <tr>
+                <td><code>KABUPATEN KOTA</code></td>
+                <td>tinytext</td>
+                <td>Nama kabupaten/kota</td>
+                <td>Ya</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="info">Field JSON yang dipakai saat request: <code>kabupaten_kota</code></div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-head">
+            <strong>3. dim_keterangan</strong>
+            <span class="tag">CRUD lengkap</span>
+          </div>
+          <pre>{
+  "id_keterangan": 1,
+  "ket": "Lulus"
+}</pre>
+          <table>
+            <thead>
+              <tr>
+                <th>Atribut Database</th>
+                <th>Tipe</th>
+                <th>Fungsi</th>
+                <th>Bisa Diubah?</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>ID KETERANGAN</code></td>
+                <td>int, primary key, auto increment</td>
+                <td>ID unik untuk kategori keterangan</td>
+                <td>Tidak</td>
+              </tr>
+              <tr>
+                <td><code>Ket</code></td>
+                <td>tinytext</td>
+                <td>Isi keterangan</td>
+                <td>Ya</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="info">Field JSON yang dipakai saat request: <code>ket</code></div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-head">
+            <strong>4. dim_lama_studi</strong>
+            <span class="tag">CRUD lengkap</span>
+          </div>
+          <pre>{
+  "id_lama_studi": 1,
+  "lama_studi": "4 Tahun"
+}</pre>
+          <table>
+            <thead>
+              <tr>
+                <th>Atribut Database</th>
+                <th>Tipe</th>
+                <th>Fungsi</th>
+                <th>Bisa Diubah?</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>ID LAMA STUDI</code></td>
+                <td>int, primary key, auto increment</td>
+                <td>ID unik untuk lama studi</td>
+                <td>Tidak</td>
+              </tr>
+              <tr>
+                <td><code>Lama Studi</code></td>
+                <td>tinytext</td>
+                <td>Nilai lama studi</td>
+                <td>Ya</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="info">Field JSON yang dipakai saat request: <code>lama_studi</code></div>
+        </div>
+
+        <div class="endpoint">
+          <div class="endpoint-head">
+            <strong>5. dim_sekolah</strong>
+            <span class="tag">CRUD lengkap</span>
+          </div>
+          <pre>{
+  "id_sekolah": 1,
+  "nama_sekolah": "SMA Negeri 1 Makassar"
+}</pre>
+          <table>
+            <thead>
+              <tr>
+                <th>Atribut Database</th>
+                <th>Tipe</th>
+                <th>Fungsi</th>
+                <th>Bisa Diubah?</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>ID SEKOLAH</code></td>
+                <td>int, primary key, auto increment</td>
+                <td>ID unik sekolah</td>
+                <td>Tidak</td>
+              </tr>
+              <tr>
+                <td><code>NAMA SEKOLAH</code></td>
+                <td>tinytext</td>
+                <td>Nama sekolah</td>
+                <td>Ya</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="info">Field JSON yang dipakai saat request: <code>nama_sekolah</code></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="two-col">
+      <section class="card">
+        <h2>Cara Panggil Endpoint</h2>
+        <p class="small">
+          Di bawah ini ada contoh minimal 1 request untuk setiap metode pemanggilan.
+          Kamu bisa pakai langsung di browser untuk <code>GET</code>, dan di Postman untuk metode lainnya.
+        </p>
+
+        <h3>GET - Ambil semua data</h3>
+        <pre>GET <span class="api-url" data-path="/dim_sekolah">memuat...</span></pre>
+
+        <h3>GET - Ambil 1 data</h3>
+        <pre>GET <span class="api-url" data-path="/dim_sekolah?id=1">memuat...</span></pre>
+
+        <h3>POST - Tambah data</h3>
+        <pre>POST <span class="api-url" data-path="/dim_sekolah">memuat...</span>
+Content-Type: application/json
+
+{
+  "nama_sekolah": "SMA Negeri 1 Makassar"
+}</pre>
+
+        <h3>PUT - Update data</h3>
+        <pre>PUT <span class="api-url" data-path="/dim_sekolah?id=1">memuat...</span>
+Content-Type: application/json
+
+{
+  "nama_sekolah": "SMA Negeri 2 Makassar"
+}</pre>
+
+        <h3>DELETE - Hapus data</h3>
+        <pre>DELETE <span class="api-url" data-path="/dim_sekolah?id=1">memuat...</span></pre>
+
+        <div class="note">
+          Untuk endpoint lain, pola URL sama. Yang berubah hanya nama endpoint dan nama field JSON sesuai tabelnya.
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Contoh Hasil Request</h2>
+
+        <h3>Hasil GET</h3>
+        <pre>{
+  "status": "success",
+  "message": "Data berhasil diambil",
+  "data": [
+    {
+      "nama_sekolah": "SMA Negeri 1 Makassar",
+      "id_sekolah": 1
+    }
+  ]
+}</pre>
+
+        <h3 class="section-gap">Hasil POST</h3>
+        <pre>{
+  "status": "success",
+  "message": "Data berhasil ditambahkan",
+  "data": {
+    "id_sekolah": "2001"
+  }
+}</pre>
+
+        <div class="info">
+          Contoh efek di database setelah <code>POST</code>:
+          data baru muncul di tabel dengan ID auto increment baru.
+        </div>
+
+        <h3 class="section-gap">Hasil PUT</h3>
+        <pre>{
+  "status": "success",
+  "message": "Data berhasil diupdate",
+  "data": {
+    "id_sekolah": 2001
+  }
+}</pre>
+
+        <div class="info">
+          Contoh efek di database setelah <code>PUT</code>:
+          baris dengan ID yang sama akan berubah isi kolomnya, sedangkan ID tetap.
+        </div>
+
+        <h3 class="section-gap">Hasil DELETE</h3>
+        <pre>{
+  "status": "success",
+  "message": "Data berhasil dihapus",
+  "data": {
+    "id_sekolah": 2001
+  }
+}</pre>
+
+        <div class="info">
+          Contoh efek di database setelah <code>DELETE</code>:
+          baris dengan ID tersebut dihapus dari tabel.
+        </div>
+      </section>
+    </div>
+
+    <section class="card section-gap">
+      <h2>Catatan Penting per Endpoint</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Endpoint</th>
+            <th>Field yang dapat diubah</th>
+            <th>Field yang tidak dapat diubah</th>
+            <th>Contoh Body JSON</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>/dim_jenis_kelamin</code></td>
+            <td><code>l_p</code></td>
+            <td><code>id_jenis_kelamin</code></td>
+            <td><code>{"l_p":"P"}</code></td>
+          </tr>
+          <tr>
+            <td><code>/dim_kabupaten_kota</code></td>
+            <td><code>kabupaten_kota</code></td>
+            <td><code>id_kabupaten_kota</code></td>
+            <td><code>{"kabupaten_kota":"Gowa"}</code></td>
+          </tr>
+          <tr>
+            <td><code>/dim_keterangan</code></td>
+            <td><code>ket</code></td>
+            <td><code>id_keterangan</code></td>
+            <td><code>{"ket":"Lulus"}</code></td>
+          </tr>
+          <tr>
+            <td><code>/dim_lama_studi</code></td>
+            <td><code>lama_studi</code></td>
+            <td><code>id_lama_studi</code></td>
+            <td><code>{"lama_studi":"4 Tahun"}</code></td>
+          </tr>
+          <tr>
+            <td><code>/dim_sekolah</code></td>
+            <td><code>nama_sekolah</code></td>
+            <td><code>id_sekolah</code></td>
+            <td><code>{"nama_sekolah":"SMK Negeri 1"}</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="note">
+        Karena primary key bersifat auto increment, nilainya tidak perlu dikirim saat <code>POST</code>.
+        Untuk <code>PUT</code> dan <code>DELETE</code>, ID dikirim lewat query string <code>?id=...</code>.
+      </div>
+    </section>
+
+    <div class="footer">
+      Dokumentasi ini bisa dibuka langsung di browser. Jika kamu mau, saya juga bisa buatkan versi README Markdown atau versi HTML yang lebih mirip dashboard API.
+    </div>
+  </main>
+  <script>
+    (function () {
+      function getCurrentBaseUrl() {
+        const current = new URL(window.location.href);
+        const path = current.pathname.replace(/\/index\.html?$/i, '').replace(/\/$/, '');
+        return `${current.origin}${path}`;
+      }
+
+      function normalizeBaseUrl(baseUrl) {
+        return String(baseUrl || '').replace(/\/+$/, '');
+      }
+
+      const baseUrl = normalizeBaseUrl(getCurrentBaseUrl());
+      const baseUrlEl = document.getElementById('baseUrlValue');
+      if (baseUrlEl) {
+        baseUrlEl.textContent = baseUrl;
+      }
+
+      document.querySelectorAll('.api-url').forEach((el) => {
+        const path = el.getAttribute('data-path') || '';
+        el.textContent = `${baseUrl}${path}`;
+      });
+    })();
+  </script>
+</body>
+</html>

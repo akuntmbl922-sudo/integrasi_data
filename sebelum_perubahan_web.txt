@@ -1,0 +1,92 @@
+Sisa kekurangan yang berkaitan dengan performa pada API saat ini
+
+1. Tidak ada pagination
+- Endpoint `GET` masih mengambil seluruh data sekaligus.
+- Jika jumlah data makin besar, response akan makin berat.
+- Hosting gratis biasanya cepat terasa lambat kalau data yang dikirim terlalu banyak.
+
+2. Belum ada filtering dan searching
+- Semua data dibaca penuh tanpa pembatasan berdasarkan kata kunci atau kondisi tertentu.
+- Saat data sudah banyak, beban baca database dan ukuran response akan meningkat.
+
+3. Belum ada sorting yang fleksibel
+- Data hanya diurutkan berdasarkan primary key secara default.
+- Belum ada opsi untuk mengurutkan sesuai kebutuhan client.
+
+4. Masih menggunakan `SELECT *`
+- Setiap request membaca semua kolom dari tabel.
+- Ini sederhana, tetapi kurang efisien kalau nanti ada kolom tambahan yang tidak selalu dipakai.
+
+5. Belum ada caching
+- Data yang sering dibaca tetap selalu diambil dari database.
+- Untuk tabel referensi yang jarang berubah, cache ringan bisa mengurangi beban server.
+
+6. Belum ada rate limiting
+- Satu client bisa mengirim banyak request tanpa batas yang jelas.
+- Di hosting gratis, ini bisa membuat server cepat penuh dan respons jadi lambat.
+
+7. Belum ada optimasi batch untuk operasi besar
+- Jika nanti ada data dalam jumlah besar, proses insert/update berulang bisa lebih lambat.
+- Belum ada mekanisme pemrosesan per batch.
+
+8. Belum ada ukuran response yang dibatasi
+- Endpoint `GET` bisa mengembalikan data sangat besar jika isi tabel bertambah.
+- Hal ini berdampak langsung ke bandwidth dan waktu respon.
+
+9. Belum ada metadata performa pada response
+- Response belum menampilkan informasi seperti:
+  - jumlah data
+  - halaman aktif
+  - total halaman
+  - waktu proses
+- Ini tidak wajib, tetapi berguna untuk menganalisis performa saat testing.
+
+10. Belum ada indeks tambahan untuk skenario pencarian masa depan
+- Primary key sudah terindeks, tetapi kalau nanti ditambah pencarian pada kolom lain, perlu indeks tambahan agar tetap cepat.
+
+Saran performa agar tetap optimal di hosting gratis
+
+1. Tambahkan pagination
+- Gunakan `page` dan `limit` pada endpoint `GET`.
+- Ambil data sedikit-sedikit agar response tetap ringan.
+
+2. Batasi data yang diambil
+- Jangan selalu kirim seluruh isi tabel jika client hanya butuh sebagian data.
+- Ambil kolom yang memang diperlukan.
+
+3. Tambahkan caching untuk tabel referensi
+- Tabel seperti `dim_jenis_kelamin`, `dim_kabupaten_kota`, `dim_keterangan`, `dim_lama_studi`, dan `dim_sekolah` cenderung jarang berubah.
+- Cache sederhana bisa sangat membantu mengurangi query ke database.
+
+4. Kurangi request berulang dari client
+- Jika frontend sering memanggil endpoint yang sama, usahakan data disimpan sementara di sisi client.
+- Ini mengurangi beban server gratis.
+
+5. Tambahkan pembatasan jumlah hasil
+- Jangan biarkan `GET` mengembalikan semua data tanpa batas.
+- Limit kecil jauh lebih aman untuk hosting gratis.
+
+6. Optimalkan query jika nanti ada pencarian
+- Kalau nanti ditambah filter atau search, pastikan kolom yang sering dicari diberi indeks.
+
+7. Hindari proses berat di setiap request
+- Jangan tambahkan proses ekstra yang tidak perlu di path utama API.
+- Hosting gratis lebih cocok untuk request singkat dan sederhana.
+
+8. Pantau waktu respon saat testing
+- Coba variasi jumlah user dan jumlah request endpoint.
+- Kalau respon mulai lambat, fokus dulu ke pagination, cache, dan pengurangan ukuran response.
+
+Kesimpulan
+
+Kekurangan non-performa sudah diperbaiki di kode:
+- konfigurasi database lebih fleksibel
+- error handling lebih jelas
+- log error tersedia
+- `PUT` dan `DELETE` sudah mengecek ID dulu
+
+Yang masih perlu diperhatikan hanya sisi performa:
+- pagination
+- caching
+- pembatasan response
+- optimalisasi query dan beban request

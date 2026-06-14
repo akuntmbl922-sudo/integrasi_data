@@ -1,0 +1,109 @@
+Analisis mengapa request JMeter awal berjalan baik lalu error meningkat setelah sekitar 100 request
+
+Konteks pengujian
+- Pengujian dilakukan pada web yang sudah dihosting, bukan di lokal.
+- Endpoint yang diuji adalah API CRUD PHP native dengan database MariaDB.
+- Hasil awal menunjukkan 100 request pertama berjalan baik tanpa error.
+- Setelah jumlah request bertambah, persentase error mulai naik.
+
+Kesimpulan singkat
+- Pola ini sangat khas untuk aplikasi yang awalnya masih sanggup melayani beban kecil, tetapi mulai melewati batas kapasitas hosting gratis, batas koneksi database, atau batas resource per periode waktu.
+- Karena gejalanya muncul setelah request tertentu, penyebabnya kemungkinan besar bukan bug logika endpoint tunggal, melainkan akumulasi beban runtime di sisi server hosting.
+
+Analisis detail penyebab yang paling mungkin
+
+1. Endpoint GET masih mengembalikan seluruh isi tabel
+- Saat endpoint dipanggil tanpa `id`, kode saat ini melakukan `SELECT *` lalu mengambil seluruh data.
+- Untuk tabel yang datanya banyak, response jadi besar, query jadi lebih berat, dan waktu eksekusi meningkat.
+- Pada hosting gratis, saat beberapa request paralel masuk bersamaan, pola ini cepat menimbulkan antrean proses.
+- Efeknya biasanya bukan langsung error di request pertama, tetapi mulai terlihat setelah throughput meningkat dan worker server mulai penuh.
+
+2. Tidak ada pagination
+- Tanpa pagination, setiap request list selalu memproses seluruh dataset.
+- Artinya beban per request tetap tinggi walaupun client hanya butuh sebagian data.
+- Pada pengujian JMeter, jika setiap virtual user terus mengakses list endpoint yang sama, beban DB dan bandwidth akan terus menumpuk.
+- Setelah jumlah request tertentu tercapai, latensi naik, lalu beberapa request timeout atau gagal.
+
+3. Tidak ada cache untuk data referensi
+- Tabel yang diuji adalah tabel dimensi, dan karakteristik tabel seperti ini biasanya jarang berubah.
+- Namun saat ini setiap request tetap memukul database.
+- Kalau request yang sama datang berulang-ulang, sistem membuang resource untuk membaca data yang sebenarnya sama berkali-kali.
+- Di hosting gratis, keterbatasan ini sangat terasa karena CPU dan I/O disk terbatas.
+
+4. Setiap request membuat koneksi database baru lewat PDO
+- Untuk model PHP native seperti ini, setiap request web biasanya membuka koneksi database baru.
+- Ini normal, tetapi di hosting gratis overhead koneksi bisa cukup terasa jika request datang rapat dan paralel.
+- Saat beban naik, biaya koneksi + eksekusi query + serialisasi JSON bisa melampaui kapasitas sementara server.
+
+5. Ada query tambahan untuk PUT dan DELETE
+- Saat `PUT` dan `DELETE`, kode saat ini melakukan pengecekan data dulu dengan `SELECT` tambahan sebelum update atau delete.
+- Ini bagus untuk akurasi, tetapi berarti ada dua query untuk satu operasi.
+- Pada beban tinggi, dua query per request memperbesar tekanan ke database.
+- Untuk testing kecil tidak terasa, tetapi pada skala puluhan atau ratusan request paralel, overhead ini mulai menumpuk.
+
+6. Hosting gratis biasanya membatasi worker, CPU, atau proses concurrent
+- Hosting gratis umumnya punya batas resource yang jauh lebih ketat daripada server berbayar.
+- Walaupun endpoint masih benar secara logika, server bisa menolak atau menunda request ketika resource habis.
+- Gejalanya sering berupa:
+  - response makin lambat
+  - request timeout
+  - error intermiten
+  - request pertama sukses, request berikutnya gagal secara acak
+
+7. Potensi batas koneksi database dari sisi hosting
+- Banyak hosting gratis membatasi jumlah koneksi MySQL aktif atau membatasi burst koneksi dalam waktu singkat.
+- Saat load test naik, pool koneksi internal hosting bisa penuh.
+- Ketika itu terjadi, aplikasi tidak selalu langsung menampilkan error SQL yang jelas, tetapi permintaan bisa timeout atau gagal.
+
+8. Bandwidth dan serialisasi JSON ikut naik
+- Response JSON untuk endpoint list dikirim penuh.
+- Semakin banyak data, semakin besar payload yang dikirim ke client.
+- Saat JMeter mensimulasikan banyak user, bandwidth bisa menjadi bottleneck tambahan selain query database.
+
+9. Tidak ada pembatasan request di sisi aplikasi
+- Aplikasi saat ini belum menolak burst request atau membatasi jumlah hasil.
+- Artinya semua request dari JMeter diproses penuh oleh aplikasi dan database.
+- Pada environment gratis, ini membuat server bekerja lebih keras daripada yang biasanya sanggup ditangani stabil.
+
+10. Beban yang terlihat di awal belum merepresentasikan kondisi steady-state
+- 100 request pertama bisa berhasil karena server masih berada pada kondisi "hangat":
+  - cache sistem masih tersedia
+  - worker masih kosong
+  - database belum penuh antrean
+- Setelah itu, sistem masuk kondisi steady-state dengan beban akumulatif.
+- Di kondisi ini, limit hosting mulai terasa sehingga error meningkat.
+
+11. Pola error yang naik perlahan mengarah ke bottleneck kapasitas, bukan murni bug tunggal
+- Jika bug murni logika, biasanya error muncul konsisten dari awal.
+- Karena di kasus ini awalnya baik lalu memburuk, pola ini lebih cocok dengan:
+  - resource exhaustion
+  - latensi database yang meningkat
+  - timeout
+  - queue request yang menumpuk
+
+Hal yang kemungkinan besar bukan penyebab utama
+- Query SQL salah total: kecil kemungkinannya, karena request awal sukses.
+- Mapping field salah total: juga kecil kemungkinannya, karena endpoint bisa berjalan.
+- File `.env` tidak terbaca: kecil kemungkinannya, karena endpoint sudah berhasil sampai tahap operasi database.
+- Kesalahan routing: tidak dominan, karena endpoint sudah bisa diakses.
+
+Implikasi untuk tuning
+- Bottleneck utama ada di jalur baca data list dan pengulangan request.
+- Prioritas tuning paling efektif adalah:
+  1. pagination
+  2. cache ringan untuk GET
+  3. pengurangan beban response
+  4. pembatasan data per request
+  5. pengurangan query yang berulang
+
+Perubahan yang paling relevan untuk dilakukan sekarang
+- Tambahkan pagination pada endpoint GET.
+- Tambahkan cache file sederhana untuk GET list, terutama tabel dimensi yang jarang berubah.
+- Kurangi penggunaan `SELECT *` menjadi kolom yang memang dibutuhkan.
+- Sediakan metadata response agar client tahu total data dan halaman.
+- Pertahankan validasi ID pada PUT/DELETE, tetapi pastikan query tetap efisien.
+
+Kesimpulan akhir
+- Error yang muncul setelah kira-kira 100 request sangat mungkin disebabkan oleh keterbatasan hosting gratis yang bertemu dengan pola akses API yang masih berat di sisi list GET.
+- Aplikasi saat ini fungsional, tetapi belum cukup dioptimalkan untuk beban bertubi-tubi.
+- Karena itu tuning yang paling masuk akal adalah mengurangi beban per request, bukan sekadar memperbaiki endpoint.

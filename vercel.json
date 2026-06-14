@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/dim_jenis_kelamin", "destination": "/api/dim_jenis_kelamin" },
+    { "source": "/dim_kabupaten_kota", "destination": "/api/dim_kabupaten_kota" },
+    { "source": "/dim_keterangan", "destination": "/api/dim_keterangan" },
+    { "source": "/dim_lama_studi", "destination": "/api/dim_lama_studi" },
+    { "source": "/dim_sekolah", "destination": "/api/dim_sekolah" }
+  ]
+}
